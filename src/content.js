@@ -110,11 +110,34 @@
   }
 
   // ---- Триггеры -------------------------------------------------------------
-  // Основной источник — сообщения от перехватчика. Ватчдог лишь восстанавливает
-  // баннеры после перерисовки доски и докрашивает появившиеся при скролле
-  // карточки (данные при этом берутся из уже загруженного store, DOM не читаем).
+  // Основной источник — сообщения от перехватчика. Ватчдог: (1) ловит SPA-смену
+  // доски (URL меняется без перезагрузки скрипта) и перезабирает данные;
+  // (2) восстанавливает баннеры после перерисовки и докрашивает появившиеся при
+  // скролле карточки (данные берутся из уже загруженного store, DOM не читаем).
+  let loadedBoardId = null;
+
+  // Сброс состояния и забор данных текущей доски. Вызывается при старте и при
+  // переходе между досками в SPA (имена колонок могут совпадать — ориентируемся
+  // строго на boardId из URL, а не на DOM).
+  function acquire() {
+    loadedBoardId = boardFetch ? boardFetch.boardId() : null;
+    lastPayload = null;
+    lastSignature = "";
+    store.clear();
+    board.cleanup(); // снять баннеры прошлой доски, recalc отрисует заново
+    fetchFallback();
+  }
+
   function watchdog() {
     if (!cfg.enabled) return;
+    if (boardFetch) {
+      const id = boardFetch.boardId();
+      if (id && id !== loadedBoardId) {
+        log("SPA-смена доски:", loadedBoardId, "→", id, "— перезабираю данные");
+        acquire();
+        return;
+      }
+    }
     if (!board.bannersHealthy() || board.visibleSignature() !== lastSignature) {
       scheduleRecalc();
     }
@@ -129,9 +152,8 @@
     applyBoardData(data.payload);
   }
 
-  // Фолбэк: ответ board API нигде не кэшируется (no-store), поэтому вместо
-  // сканирования хранилищ сами повторно запрашиваем данные через REST.
-  // Для CMP-доски это основной источник (fetchBoardData приложение не вызывает).
+  // Основной источник: ответ board API нигде не кэшируется (no-store), поэтому
+  // вместо сканирования хранилищ сами запрашиваем данные через REST allData.json.
   function fetchFallback() {
     if (lastPayload || !boardFetch) return;
     boardFetch.fetch().then((found) => {
@@ -140,21 +162,20 @@
         log("получил board data REST-запросом:", found.source);
         applyBoardData(found.payload);
       } else {
-        log("REST-запрос board data не дал результата (TMP-доска? — ждём перехват)");
+        log("REST-запрос board data не дал результата (нет boardId / ошибка сети)");
       }
     }).catch((e) => log("ошибка REST-запроса board data:", e));
   }
 
   function init() {
     window.addEventListener("message", onMessage);
-    setInterval(watchdog, 1000); // восстановление баннеров / докраска видимых карточек
+    setInterval(watchdog, 1000); // смена доски / восстановление баннеров / докраска
     // Если board API прилетел до загрузки этого скрипта — попросим переотдать.
     window.postMessage({ source: "jiraext-request" }, window.location.origin);
     log("init: жду перехваченные ответы board API");
-    // CMP-доска fetchBoardData не запрашивает — забираем данные REST-запросом сразу.
-    // Для TMP даём фору живому перехвату (guard по lastPayload не даст задвоить).
-    if (boardFetch && boardFetch.isCmp()) fetchFallback();
-    else setTimeout(fetchFallback, 1500);
+    // Забираем данные текущей доски. CMP — REST-запросом; TMP — через перехват
+    // (fetchFallback для TMP вернёт null, данные придут от interceptor.js).
+    acquire();
   }
 
   window.__jes.fetch = () => boardFetch && boardFetch.fetch();

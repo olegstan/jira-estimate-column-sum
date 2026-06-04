@@ -8,11 +8,9 @@
  * кэша» нельзя — надёжнее повторно запросить тот же GET самим: раз no-store,
  * сервер всегда отдаёт свежий ответ, запрос дешёвый и идемпотентный.
  *
- * Источник зависит от типа доски:
- *   • CMP (company-managed, URL .../software/c/...):
- *       GET /rest/greenhopper/1.0/xboard/work/allData.json?rapidViewId={id}
- *   • TMP (team-managed): остаётся путь живого перехвата (net/interceptor.js),
- *       fetchBoardData приложение запрашивает само.
+ * Источник единый для обоих типов досок (CMP и TMP) и любого поля оценки
+ * (timeoriginalestimate, story points и т.п.):
+ *   GET /rest/greenhopper/1.0/xboard/work/allData.json?rapidViewId={boardId}
  *
  * Возвращает { source, payload } или null. Разбор payload — в board-api.js.
  */
@@ -27,12 +25,12 @@
     return m ? m[1] : null;
   }
 
-  // company-managed доска отдаёт данные через greenhopper allData.json
-  function isCmp() {
-    return /\/software\/c\//.test(location.pathname);
-  }
-
-  async function fetchAllData(id) {
+  async function fetchBoard() {
+    const id = boardId();
+    if (!id) {
+      console.warn(TAG, "boardId не найден в URL — REST-запрос пропущен");
+      return null;
+    }
     const url = "/rest/greenhopper/1.0/xboard/work/allData.json?rapidViewId=" +
                 encodeURIComponent(id);
     let res;
@@ -52,19 +50,8 @@
       return null;
     }
     console.log(TAG, "✓ забрал board data REST-запросом allData.json | доска", id);
-    return { source: "REST:allData.json", payload };
+    return { source: "REST:allData.json#" + id, payload };
   }
 
-  async function fetchBoard() {
-    const id = boardId();
-    if (!id) {
-      console.warn(TAG, "boardId не найден в URL — REST-запрос пропущен");
-      return null;
-    }
-    if (isCmp()) return fetchAllData(id);
-    // TMP: данные приходят через перехватчик (interceptor.js), сами не дёргаем.
-    return null;
-  }
-
-  NS.boardFetch = { fetch: fetchBoard, boardId, isCmp };
+  NS.boardFetch = { fetch: fetchBoard, boardId };
 })(window.JES = window.JES || {});
