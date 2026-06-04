@@ -1,0 +1,55 @@
+{
+  "id": 136,
+  "type": "SCRUM",
+  "name": "WS board",
+  "estimation": {
+    "type": "field",
+    "field": { "fieldId": "timeoriginalestimate", "displayName": "Исходная оценка" }
+  },
+  "columns": [
+    {
+      "id": 829,
+      "name": "К выполнению",
+      "issues": [
+        { "key": "WS-101", "summary": "Задача без оценки", "isVisible": true },
+        { "key": "WS-102", "summary": "Часы", "estimation": "2h", "estimationFieldId": "timeoriginalestimate", "isVisible": true },
+        { "key": "WS-103", "summary": "Минуты", "estimation": "30m", "estimationFieldId": "timeoriginalestimate", "isVisible": true },
+        { "key": "WS-104", "summary": "Скрыта фильтром — не считаем", "estimation": "8h", "estimationFieldId": "timeoriginalestimate", "isVisible": false }
+      ]
+    },
+    {
+      "id": 833,
+      "name": "Сотрудник 1",
+      "issues": [
+        { "key": "WS-201", "summary": "День", "estimation": "1d", "estimationFieldId": "timeoriginalestimate", "isVisible": true },
+        { "key": "WS-202", "summary": "Составная час+мин", "estimation": "2h 30m", "estimationFieldId": "timeoriginalestimate", "isVisible": true },
+        { "key": "WS-203", "summary": "Нулевая оценка", "estimation": "0m", "estimationFieldId": "timeoriginalestimate", "isVisible": true },
+        { "key": "WS-204", "summary": "Без оценки", "isVisible": true }
+      ]
+    },
+    {
+      "id": 840,
+      "name": "Готово к проверке",
+      "issues": [
+        { "key": "WS-301", "summary": "День+часы", "estimation": "2d 4h", "estimationFieldId": "timeoriginalestimate", "isVisible": true },
+        { "key": "WS-302", "summary": "Полная составная", "estimation": "1d 2h 30m", "estimationFieldId": "timeoriginalestimate", "isVisible": true }
+      ]
+    },
+    {
+      "id": 839,
+      "name": "В сборку",
+      "issues": []
+    }
+  ],
+  "people": {
+    "user-1": {
+      "userKey": "user-1",
+      "accountId": "acc0001",
+      "displayName": "Алексей Смирнов",
+      "emailAddress": "user1@example.com",
+      "avatarUrl": "https://example.com/avatar.png",
+      "active": true,
+      "accountType": "atlassian"
+    }
+  }
+}
