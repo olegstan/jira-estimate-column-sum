@@ -1,4 +1,12 @@
-# Jira Estimate Summary
+# Jira Estimate Summary — sum Original estimate hours per board column
+
+> Chrome extension that totals the **Original estimate** hours for every column on a Jira
+> board (Scrum & Kanban) and highlights cards that have no estimate. A lightweight time
+> tracking / capacity-planning helper for Agile teams.
+
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
+![Platform](https://img.shields.io/badge/platform-Chrome-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 Chrome extension for Jira boards. It sums up the **Original estimate** for each column,
 converts time (`30m`, `10h`, `1h`, `1d`, including compound values like `1d 2h 30m`) into hours and
@@ -7,6 +15,13 @@ and their count is displayed next to the total (`5 without time`).
 
 Recalculation happens automatically when filters change and as more cards are loaded
 (via `MutationObserver`).
+
+<!-- Add a screenshot/GIF here — it boosts click-through and dwell time, both indirect ranking signals:
+![Screenshot](docs/screenshot.png)
+-->
+
+**Keywords:** Jira board estimate sum, Jira column total hours, Jira original estimate,
+Jira time tracking extension, Chrome extension for Jira, Agile / Scrum / Kanban estimate totals.
 
 ## Structure
 
