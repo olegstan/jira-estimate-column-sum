@@ -1,0 +1,12 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jg" x1="40" y1="40" x2="92" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0052CC"/>
+      <stop offset="1" stop-color="#2684FF"/>
+    </linearGradient>
+  </defs>
+  <!-- upper chevron pointing up -->
+  <path d="M64 12 L116 64 L94 64 L64 34 L34 64 L12 64 Z" fill="#2684FF"/>
+  <!-- lower chevron pointing up (nested), gradient -->
+  <path d="M64 56 L100 92 L82 92 L64 74 L46 92 L28 92 Z" fill="url(#jg)"/>
+</svg>
