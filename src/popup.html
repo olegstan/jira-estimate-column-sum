@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font: 13px/1.4 -apple-system, Segoe UI, Arial, sans-serif; width: 240px; padding: 12px; margin: 0; }
+    h1 { font-size: 14px; margin: 0 0 10px; }
+    label { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; gap: 8px; }
+    input[type="number"] { width: 60px; }
+    .hint { color: #666; font-size: 11px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Jira Estimate Summary</h1>
+
+  <label>
+    <span>Включено</span>
+    <input type="checkbox" id="enabled" />
+  </label>
+  <label>
+    <span>Часов в дне (1d)</span>
+    <input type="number" id="hoursPerDay" min="1" max="24" step="0.5" />
+  </label>
+  <label>
+    <span>Дней в неделе (1w)</span>
+    <input type="number" id="daysPerWeek" min="1" max="7" step="0.5" />
+  </label>
+
+  <div class="hint">Изменения применяются к открытой доске автоматически.</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+/* Шапка колонки с баннером: разрешаем перенос строки и авто-высоту,
+   добавляем отступ снизу, чтобы баннер не наезжал на карточки. */
+.jiraext-header {
+  flex-wrap: wrap !important;
+  height: auto !important;
+  min-height: 0 !important;
+  align-items: center !important;
+  padding-bottom: 32px !important;
+}
+
+/* Баннер: всегда две строки под названием колонки —
+   1-я строка сумма часов, 2-я строка количество без времени. */
+.jiraext-banner {
+  flex-basis: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: -10px;
+  font-size: 12px;
+  line-height: 1.2;
+  order: 99; /* всегда после названия колонки */
+}
+
+.jiraext-sum,
+.jiraext-warn {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.jiraext-sum {
+  background: #0052cc; /* Jira blue */
+}
+
+.jiraext-warn {
+  background: #de350b; /* Jira red */
+}
+
+.jiraext-warn.jiraext-zero {
+  background: #5e6c84; /* серый, когда без времени = 0 */
+}
+
+/* Карточки без оценки времени — розовая подсветка */
+.jiraext-no-estimate {
+  background-color: #ffd6e7 !important;
+  box-shadow: inset 0 0 0 1px #ff8cba !important;
+}

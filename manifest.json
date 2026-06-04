@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Jira Estimate Summary",
+  "version": "1.0.0",
+  "description": "Суммирует Original estimate по каждой колонке Jira-доски, переводит время в часы и подсвечивает карточки без оценки.",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "Jira Estimate Summary",
+    "default_popup": "src/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.atlassian.net/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["src/content.js"],
+      "css": ["src/styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

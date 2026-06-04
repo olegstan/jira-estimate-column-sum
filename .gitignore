@@ -1,0 +1,20 @@
+# Эталонный дамп реальной доски Jira (содержит имена и тикеты) — не публикуем
+part.html
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Редакторы / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Зависимости / сборка (на будущее)
+node_modules/
+dist/
+build/
+*.zip
+*.log
