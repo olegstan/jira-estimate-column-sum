@@ -1,46 +1,47 @@
-# Fixtures — примеры запросов/ответов Jira
+# Fixtures — Jira request/response samples
 
-Эталонные ответы API для отладки extractor'а. **Реальные данные в гит не коммитим**
-(см. `.gitignore`): сырые дампы кладём в `fixtures/*.raw.json`, а в репозиторий
-попадают только обезличенные `*.sample.json`.
+Reference API responses for debugging the extractor. **We never commit real data
+to git** (see `.gitignore`): raw dumps go into `fixtures/*.raw.json`, and only the
+anonymized `*.sample.json` files make it into the repository.
 
-## Источник данных для сумм: `fetchBoardData`
+## Data source for sums: `fetchBoardData`
 
 ```
 GET /rest/boards/latest/board/{boardId}?operation=fetchBoardData&...
 ```
 
-Пример: `board-fetchBoardData.sample.json` (обезличенный).
+Example: `board-fetchBoardData.sample.json` (anonymized).
 
-Что берём из ответа:
+What we take from the response:
 
-| Путь                                   | Назначение                                         |
-|----------------------------------------|----------------------------------------------------|
-| `columns[].name`                       | Имя колонки — совпадает с названием на доске        |
-| `columns[].issues[].key`               | Ключ задачи (`WS-1394`) — ключ кэша                 |
-| `columns[].issues[].estimation`        | Оценка: `2h`, `1d`, `2h 30m`, `1d 2h 30m`, `0m`, `30m` |
-| `columns[].issues[].estimationFieldId` | Подтверждает, что это `timeoriginalestimate`        |
-| `columns[].issues[].isVisible`         | `false` → скрыта активным quick-фильтром, не считаем |
-| `estimation.field.fieldId`             | Поле оценки доски (`timeoriginalestimate`)          |
+| Path                                   | Purpose                                              |
+|----------------------------------------|------------------------------------------------------|
+| `columns[].name`                       | Column name — matches the title shown on the board    |
+| `columns[].issues[].key`               | Issue key (`WS-1394`) — cache key                     |
+| `columns[].issues[].estimation`        | Estimate: `2h`, `1d`, `2h 30m`, `1d 2h 30m`, `0m`, `30m` |
+| `columns[].issues[].estimationFieldId` | Confirms it is `timeoriginalestimate`                 |
+| `columns[].issues[].isVisible`         | `false` → hidden by an active quick filter, not counted |
+| `estimation.field.fieldId`             | Board's estimation field (`timeoriginalestimate`)     |
 
-Полнота: ответ содержит **все** задачи доски независимо от скролла/виртуализации,
-поэтому сумма по `fetchBoardData` точная. Если у задачи нет `estimation` — она «без
-времени» (розовая).
+Completeness: the response contains **all** of the board's issues regardless of
+scroll/virtualization, so the sum from `fetchBoardData` is exact. If an issue has
+no `estimation`, it is "without time" (pink).
 
-## Непригодный источник: `QuickFindActivitiesQuery`
+## Unusable source: `QuickFindActivitiesQuery`
 
 ```
 POST /gateway/api/graphql?q=QuickFindActivitiesQuery
 ```
 
-Это «недавняя активность» (выпадашка поиска). **Не использовать для сумм:**
-нет поля оценки и `statusCategory` (3 статуса) не соответствует ~13 колонкам доски.
+This is "recent activity" (the search dropdown). **Do not use it for sums:** it has
+no estimation field, and its `statusCategory` (3 statuses) does not match the ~13
+board columns.
 
-## Обезличивание
+## Anonymization
 
 ```
 node tools/anonymize.mjs fixtures/board.raw.json fixtures/board-fetchBoardData.sample.json
 ```
 
-Скрипт заменяет реальные имена/почты/идентификаторы/аватары на детерминированные
-вымышленные (и колонки-имена людей тоже). Подробности — в `tools/anonymize.mjs`.
+The script replaces real names/emails/identifiers/avatars with deterministic
+fictional ones (and people-named columns too). Details — in `tools/anonymize.mjs`.
