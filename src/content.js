@@ -15,7 +15,8 @@
     header: '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]',
     columnName: '[data-testid$="column-title.column-name"]',
     card: '[data-testid="platform-board-kit.ui.card.card"]',
-    estimate: '[data-testid="software-board.common.fields.estimate-field.static.estimate-wrapper"]'
+    estimate: '[data-testid="software-board.common.fields.estimate-field.static.estimate-wrapper"]',
+    keyLink: 'a[href^="/browse/"]'
   };
 
   const BANNER_CLASS = "jiraext-banner";
@@ -110,6 +111,42 @@
     banner.appendChild(warn);
   }
 
+  // ---- Кэш против виртуализации ---------------------------------------------
+  // Jira рендерит только видимые карточки — при скролле невидимые удаляются из
+  // DOM, поэтому считать сумму по «тому, что сейчас на экране» нельзя.
+  // Решение: запоминаем каждую увиденную карточку по её ключу (WS-702) вместе с
+  // колонкой и оценкой. Сумма по колонке берётся из кэша, поэтому при скролле
+  // она только дополняется до верной, а не теряет уехавшие карточки.
+  const cache = new Map(); // issueKey -> { col, hours, hasEst }
+  let genEl = null;        // контейнер колонок — маркер «поколения» доски
+  let lastUrl = location.href;
+
+  function cardKey(card) {
+    const a = card.querySelector(SEL.keyLink);
+    const href = a && a.getAttribute("href"); // "/browse/WS-702"
+    return href ? href.split("/").pop() : null;
+  }
+
+  function columnName(column) {
+    const el = column.querySelector(SEL.columnName);
+    return el ? el.textContent.trim() : "";
+  }
+
+  // Сбрасываем кэш при смене фильтров (меняется URL) или полной перерисовке
+  // доски (контейнер колонок заменяется новым узлом). Скролл этого не вызывает.
+  function checkGeneration() {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      cache.clear();
+    }
+    const firstCol = document.querySelector(SEL.column);
+    const container = firstCol ? firstCol.parentElement : null;
+    if (container && container !== genEl) {
+      if (genEl !== null) cache.clear(); // именно замена, а не первый запуск
+      genEl = container;
+    }
+  }
+
   // ---- Основной пересчёт ----------------------------------------------------
   function recalc() {
     if (!settings.enabled) {
@@ -117,31 +154,44 @@
       return;
     }
 
-    const columns = document.querySelectorAll(SEL.column);
-    columns.forEach((column) => {
-      const cards = column.querySelectorAll(SEL.card);
-      let totalHours = 0;
-      let noEstimateCount = 0;
+    checkGeneration();
 
-      cards.forEach((card) => {
+    const columns = document.querySelectorAll(SEL.column);
+
+    // 1) Обновляем кэш по отрисованным карточкам и красим розовым те, что без
+    //    оценки (покраска возможна только для видимых — это нормально).
+    columns.forEach((column) => {
+      const name = columnName(column);
+      column.querySelectorAll(SEL.card).forEach((card) => {
         const estEl = card.querySelector(SEL.estimate);
         const hours = estEl ? parseEstimateToHours(estEl.textContent.trim()) : 0;
+        const hasEst = hours > 0;
+        card.classList.toggle(NO_EST_CLASS, !hasEst);
 
-        if (hours > 0) {
-          totalHours += hours;
-          card.classList.remove(NO_EST_CLASS);
-        } else {
-          noEstimateCount++;
-          card.classList.add(NO_EST_CLASS);
-        }
+        const key = cardKey(card);
+        if (key) cache.set(key, { col: name, hours, hasEst });
       });
+    });
 
+    // 2) Сводим итоги по колонкам из кэша — включая виртуализированные карточки.
+    const totals = new Map(); // col -> { hours, noEst }
+    cache.forEach(({ col, hours, hasEst }) => {
+      const t = totals.get(col) || { hours: 0, noEst: 0 };
+      t.hours += hours;
+      if (!hasEst) t.noEst++;
+      totals.set(col, t);
+    });
+
+    // 3) Рисуем баннеры.
+    columns.forEach((column) => {
+      const t = totals.get(columnName(column)) || { hours: 0, noEst: 0 };
       const banner = getBanner(column);
-      if (banner) renderBanner(banner, totalHours, noEstimateCount);
+      if (banner) renderBanner(banner, t.hours, t.noEst);
     });
   }
 
   function cleanup() {
+    cache.clear();
     document.querySelectorAll("." + BANNER_CLASS).forEach((b) => b.remove());
     document.querySelectorAll("." + NO_EST_CLASS).forEach((c) => c.classList.remove(NO_EST_CLASS));
   }
@@ -156,24 +206,42 @@
   //      если баннеров нет или «отпечаток» доски изменился (асинхронная
   //      дозагрузка карточек, не привязанная к клику).
   let debounceTimer = null;
+  let throttleTimer = null;
+  let lastRun = 0;
   let lastSignature = "";
 
-  function scheduleRecalc() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      recalc();
-      lastSignature = boardSignature();
-    }, 250);
+  function runRecalc() {
+    lastRun = Date.now();
+    recalc();
+    lastSignature = boardSignature();
   }
 
-  // Дешёвый «отпечаток» состояния доски: число колонок, число карточек и
-  // тексты всех оценок. Меняется при любой значимой перерисовке.
+  // Debounce — для редких событий (клик, фильтр, ввод).
+  function scheduleRecalc() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runRecalc, 250);
+  }
+
+  // Throttle — для скролла: нужно успеть «снять» карточки в кэш, пока они видны,
+  // поэтому пересчитываем регулярно во время прокрутки, а не только после неё.
+  function throttledRecalc() {
+    const since = Date.now() - lastRun;
+    if (since >= 150) {
+      runRecalc();
+    } else {
+      clearTimeout(throttleTimer);
+      throttleTimer = setTimeout(runRecalc, 150 - since);
+    }
+  }
+
+  // Дешёвый «отпечаток» состояния доски: число колонок и ключи+оценки видимых
+  // карточек. Меняется при любой значимой перерисовке (в т.ч. при скролле).
   function boardSignature() {
     const cols = document.querySelectorAll(SEL.column).length;
     let sig = cols + "|";
     document.querySelectorAll(SEL.card).forEach((c) => {
       const est = c.querySelector(SEL.estimate);
-      sig += (est ? est.textContent.trim() : "·") + ",";
+      sig += (cardKey(c) || "?") + ":" + (est ? est.textContent.trim() : "·") + ",";
     });
     return sig;
   }
@@ -197,10 +265,12 @@
   }
 
   function init() {
-    // Пересчёт по пользовательским событиям (с дебаунсом внутри scheduleRecalc).
+    // Пересчёт по пользовательским событиям (debounce).
     ["click", "keyup", "dragend", "drop"].forEach((ev) =>
       document.addEventListener(ev, scheduleRecalc, true)
     );
+    // Скролл — throttle, чтобы успевать собирать карточки в кэш до виртуализации.
+    document.addEventListener("scroll", throttledRecalc, true);
     // Ватчдог-страховка: запускает пересчёт только при реальной необходимости.
     setInterval(watchdog, 1000);
     scheduleRecalc();
