@@ -11,6 +11,9 @@ fixtures/raw/
 Thumbs.db
 desktop.ini
 
+# Локальные правила работы (не публикуем)
+.rules/
+
 # Редакторы / IDE
 .vscode/
 .idea/

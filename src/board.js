@@ -1,7 +1,8 @@
 /**
- * board.js — весь доступ к DOM доски Jira: чтение карточек и отрисовка баннеров.
- * SRP: знает селекторы board-kit и как читать/писать в шапки колонок.
- * Не содержит ни арифметики времени, ни состояния — только DOM.
+ * board.js — доступ к DOM доски Jira: размещение баннеров и покраска карточек.
+ * SRP: знает селекторы board-kit. Оценки из DOM НЕ читаем (виртуализация даёт
+ * неверные данные) — суммы приходят из board API. DOM нужен лишь чтобы найти
+ * шапку колонки по имени и подсветить видимые карточки по данным из store.
  */
 (function (NS) {
   "use strict";
@@ -11,7 +12,6 @@
     header: '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]',
     columnName: '[data-testid$="column-title.column-name"]',
     card: '[data-testid="platform-board-kit.ui.card.card"]',
-    estimate: '[data-testid="software-board.common.fields.estimate-field.static.estimate-wrapper"]',
     keyLink: 'a[href^="/browse/"]'
   };
 
@@ -19,16 +19,10 @@
   const HEADER_CLASS = "jiraext-header";
   const NO_EST_CLASS = "jiraext-no-estimate";
 
-  // ---- Чтение ---------------------------------------------------------------
+  // ---- Чтение DOM (только структура, без оценок) ----------------------------
 
   const columns = () => document.querySelectorAll(SEL.column);
   const cards = (column) => column.querySelectorAll(SEL.card);
-
-  // Контейнер колонок: стабилен при скролле, заменяется при перерисовке доски.
-  function columnsContainer() {
-    const first = document.querySelector(SEL.column);
-    return first ? first.parentElement : null;
-  }
 
   function columnName(column) {
     const el = column.querySelector(SEL.columnName);
@@ -39,11 +33,6 @@
     const a = card.querySelector(SEL.keyLink);
     const href = a && a.getAttribute("href"); // "/browse/WS-702"
     return href ? href.split("/").pop() : null;
-  }
-
-  function estimateText(card) {
-    const el = card.querySelector(SEL.estimate);
-    return el ? el.textContent.trim() : "";
   }
 
   function paintNoEstimate(card, isMissing) {
@@ -82,7 +71,6 @@
     banner.appendChild(warn);
   }
 
-  // У каждой колонки должен быть баннер — иначе требуется пересчёт.
   function bannersHealthy() {
     const cols = columns();
     if (!cols.length) return true;
@@ -93,11 +81,11 @@
     return true;
   }
 
-  // Дешёвый «отпечаток» состояния: число колонок + ключи/оценки видимых карточек.
-  function signature() {
+  // Отпечаток видимых карточек — чтобы перекрашивать по мере их появления.
+  function visibleSignature() {
     let sig = columns().length + "|";
     document.querySelectorAll(SEL.card).forEach((card) => {
-      sig += (cardKey(card) || "?") + ":" + estimateText(card) + ",";
+      sig += (cardKey(card) || "?") + ",";
     });
     return sig;
   }
@@ -109,7 +97,7 @@
   }
 
   NS.board = {
-    columns, cards, columnsContainer, columnName, cardKey, estimateText,
-    paintNoEstimate, ensureBanner, renderBanner, bannersHealthy, signature, cleanup
+    columns, cards, columnName, cardKey, paintNoEstimate,
+    ensureBanner, renderBanner, bannersHealthy, visibleSignature, cleanup
   };
 })(window.JES = window.JES || {});

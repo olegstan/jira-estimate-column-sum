@@ -15,11 +15,23 @@
         "http://localhost/*",
         "http://127.0.0.1/*"
       ],
+      "js": ["src/net/interceptor.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://*.atlassian.net/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
       "js": [
         "src/estimate.js",
         "src/settings.js",
         "src/store.js",
         "src/board.js",
+        "src/net/board-api.js",
+        "src/net/board-fetch.js",
         "src/content.js"
       ],
       "css": ["src/styles.css"],
