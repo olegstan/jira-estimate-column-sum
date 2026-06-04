@@ -1,84 +1,84 @@
 # Jira Estimate Summary
 
-Chrome-расширение для досок Jira. Суммирует **Original estimate** по каждой колонке,
-переводит время (`30m`, `10h`, `1h`, `1d`, в т.ч. составное `1d 2h 30m`) в часы и
-показывает сумму в шапке колонки. Карточки без оценки подсвечиваются розовым,
-а их количество выводится рядом с суммой (`5 без времени`).
+Chrome extension for Jira boards. It sums up the **Original estimate** for each column,
+converts time (`30m`, `10h`, `1h`, `1d`, including compound values like `1d 2h 30m`) into hours and
+shows the total in the column header. Cards without an estimate are highlighted in pink,
+and their count is displayed next to the total (`5 without time`).
 
-Пересчёт происходит автоматически при изменении фильтров и дозагрузке карточек
-(через `MutationObserver`).
+Recalculation happens automatically when filters change and as more cards are loaded
+(via `MutationObserver`).
 
-## Структура
+## Structure
 
-Код разбит по ответственности (SOLID/KISS): каждый модуль решает одну задачу,
-оркестратор только связывает их и решает «когда пересчитывать».
+The code is split by responsibility (SOLID/KISS): each module solves a single task,
+and the orchestrator only wires them together and decides "when to recalculate".
 
 ```
 jira-ext/
-├── manifest.json        # манифест расширения (MV3)
+├── manifest.json        # extension manifest (MV3)
 ├── src/
-│   ├── estimate.js      # перевод оценки в часы + форматирование (чистые функции)
-│   ├── settings.js      # загрузка/наблюдение настроек из chrome.storage
-│   ├── store.js         # задачи доски + суммы по колонкам
-│   ├── board.js         # DOM доски: размещение баннера, покраска карточек
-│   ├── content.js       # оркестратор: приём данных API, отрисовка, ватчдог
+│   ├── estimate.js      # estimate-to-hours conversion + formatting (pure functions)
+│   ├── settings.js      # load/observe settings from chrome.storage
+│   ├── store.js         # board tasks + column totals
+│   ├── board.js         # board DOM: banner placement, card highlighting
+│   ├── content.js       # orchestrator: receive API data, render, watchdog
 │   ├── net/
-│   │   ├── interceptor.js  # MAIN-world: перехват ответов board API → postMessage
-│   │   └── board-api.js    # разбор ответа fetchBoardData → список задач
-│   ├── styles.css       # стили баннера и подсветки
-│   ├── popup.html       # настройки (вкл/выкл, часов в дне/неделе)
+│   │   ├── interceptor.js  # MAIN-world: intercept board API responses → postMessage
+│   │   └── board-api.js    # parse fetchBoardData response → task list
+│   ├── styles.css       # banner and highlight styles
+│   ├── popup.html       # settings (on/off, hours per day/week)
 │   └── popup.js
-├── fixtures/            # обезличенные примеры ответов API (для отладки)
-├── tools/anonymize.mjs  # обезличивание сырых дампов API
-├── part.html            # эталонная вёрстка доски Jira (для разработки)
+├── fixtures/            # anonymized example API responses (for debugging)
+├── tools/anonymize.mjs  # anonymize raw API dumps
+├── part.html            # reference Jira board markup (for development)
 └── README.md
 ```
 
-Поток данных в одну сторону:
+One-way data flow:
 
 ```
 interceptor.js (MAIN) → postMessage → content.js → board-api → estimate → store
                                                           ↓
-                                              board (баннеры/покраска)
+                                              board (banners/highlighting)
 ```
 
-Модули с одной ответственностью, тестируются независимо.
+Single-responsibility modules, tested independently.
 
-## Установка
+## Installation
 
-1. Откройте `chrome://extensions`.
-2. Включите **Режим разработчика**.
-3. **Загрузить распакованное расширение** → выберите папку `jira-ext`.
-4. Откройте доску Jira (`*.atlassian.net`) — сумма появится в шапках колонок.
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. **Load unpacked extension** → select the `jira-ext` folder.
+4. Open a Jira board (`*.atlassian.net`) — the total will appear in the column headers.
 
-## Настройки
+## Settings
 
-Иконка расширения → popup:
+Extension icon → popup:
 
-- **Включено** — вкл/выкл подсчёт.
-- **Часов в дне** — сколько часов в `1d` (по умолчанию 8).
-- **Дней в неделе** — сколько дней в `1w` (по умолчанию 5).
+- **Enabled** — turn the count on/off.
+- **Hours per day** — how many hours are in `1d` (default 8).
+- **Days per week** — how many days are in `1w` (default 5).
 
-## Логика перевода в часы
+## Hour conversion logic
 
-| Единица | Значение            |
-|---------|---------------------|
-| `m`     | минуты (`/60`)      |
-| `h`     | часы                |
-| `d`     | `hoursPerDay` часов |
-| `w`     | `daysPerWeek × hoursPerDay` |
+| Unit | Meaning             |
+|------|---------------------|
+| `m`  | minutes (`/60`)     |
+| `h`  | hours               |
+| `d`  | `hoursPerDay` hours |
+| `w`  | `daysPerWeek × hoursPerDay` |
 
-## Источник данных и виртуализация
+## Data source and virtualization
 
-Jira держит в DOM только видимые карточки, поэтому читать оценки из HTML нельзя —
-при скролле данные неполные. Вместо этого расширение перехватывает ответ board API
-(`/rest/boards/.../fetchBoardData`), где есть **все** задачи доски независимо от
-скролла, с полем `estimation` и `isVisible`. Сумма считается из этого ответа.
+Jira keeps only visible cards in the DOM, so reading estimates from HTML is not reliable —
+the data is incomplete while scrolling. Instead, the extension intercepts the board API
+response (`/rest/boards/.../fetchBoardData`), which contains **all** board tasks regardless of
+scrolling, with the `estimation` and `isVisible` fields. The total is computed from this response.
 
-- `isVisible: false` → карточка скрыта активным quick-фильтром, в сумму не идёт.
-- `columns[].name` совпадает с названием колонки на доске, по нему и кладётся баннер.
-- При смене фильтра/спринта Jira сама делает новый запрос — перехватчик его ловит,
-  store перезаполняется, суммы пересчитываются. Скролл на данные не влияет.
+- `isVisible: false` → the card is hidden by an active quick filter and is not counted.
+- `columns[].name` matches the column name on the board, which is used to place the banner.
+- When the filter/sprint changes, Jira itself issues a new request — the interceptor catches it,
+  the store is refilled, and the totals are recalculated. Scrolling does not affect the data.
 
-DOM используется только для размещения баннера в шапке и покраски видимых карточек
-без оценки (по данным из API).
+The DOM is used only to place the banner in the header and to highlight visible cards
+without an estimate (based on data from the API).
