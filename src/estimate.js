@@ -48,9 +48,34 @@
     return total;
   }
 
-  /** Часы → компактная строка ("12.5", "12"). */
-  function format(hours) {
-    return String(Math.round(hours * 100) / 100);
+  /**
+   * Часы → строка в Jira-формате без дробей: "2d 7h 20m", "20m", "1w 3d".
+   * Разбивка по тем же единицам, что и parse (w/d/h/m), с учётом конфигурации
+   * рабочего дня/недели. Нулевые компоненты опускаем; ровно 0 → "0h".
+   * @param {number} hours
+   * @param {{hoursPerDay:number, daysPerWeek:number}} cfg
+   */
+  function format(hours, cfg) {
+    const hoursPerDay = (cfg && cfg.hoursPerDay) || 8;
+    const daysPerWeek = (cfg && cfg.daysPerWeek) || 5;
+
+    let mins = Math.round(hours * 60); // в минутах — дальше только целочисленно
+    if (mins <= 0) return "0h";
+
+    const perDay = hoursPerDay * 60;
+    const perWeek = daysPerWeek * perDay;
+
+    const w = Math.floor(mins / perWeek); mins -= w * perWeek;
+    const d = Math.floor(mins / perDay);  mins -= d * perDay;
+    const h = Math.floor(mins / 60);      mins -= h * 60;
+    const m = mins;
+
+    const parts = [];
+    if (w) parts.push(w + "w");
+    if (d) parts.push(d + "d");
+    if (h) parts.push(h + "h");
+    if (m) parts.push(m + "m");
+    return parts.join(" ");
   }
 
   NS.estimate = { parse, format };

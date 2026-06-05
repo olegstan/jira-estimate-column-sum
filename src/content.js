@@ -50,6 +50,22 @@
     log("применил данные API: задач(видимых) =", issues.length,
       "| колонки API:", [...store.totalsByColumn().keys()]);
     runRecalc();
+    enrichSpent(issues.map((i) => i.key));
+  }
+
+  // Догрузка потраченного времени: в board API его нет (там только оценка),
+  // поэтому timespent забираем отдельным REST-поиском по ключам и дописываем
+  // в store. spentToken отсекает ответы для уже сменившейся доски.
+  let spentToken = 0;
+  function enrichSpent(keys) {
+    if (!boardFetch || !boardFetch.fetchSpent) return;
+    const token = ++spentToken;
+    boardFetch.fetchSpent(keys).then((map) => {
+      if (token !== spentToken) return; // доска успела смениться — ответ устарел
+      map.forEach((sec, key) => store.setSpent(key, sec / 3600));
+      log("догрузил потраченное время: задач с timespent =", map.size);
+      runRecalc();
+    }).catch((e) => log("ошибка догрузки timespent:", e));
   }
 
   // ---- Отрисовка из store ---------------------------------------------------
@@ -64,10 +80,10 @@
 
     board.columns().forEach((column) => {
       const apiCol = resolveApiColumn(column);
-      const t = totals.get(apiCol) || { hours: 0, noEst: 0 };
+      const t = totals.get(apiCol) || { hours: 0, noEst: 0, spent: 0 };
 
       const banner = board.ensureBanner(column);
-      if (banner) board.renderBanner(banner, t.hours, t.noEst, estimate.format);
+      if (banner) board.renderBanner(banner, t.hours, t.noEst, (h) => estimate.format(h, cfg), t.spent);
 
       // Красим только видимые карточки — по данным из store (не из DOM).
       board.cards(column).forEach((card) => {
@@ -123,6 +139,7 @@
     loadedBoardId = boardFetch ? boardFetch.boardId() : null;
     lastPayload = null;
     lastSignature = "";
+    spentToken++; // отбросить незавершённую догрузку timespent прошлой доски
     store.clear();
     board.cleanup(); // снять баннеры прошлой доски, recalc отрисует заново
     fetchFallback();

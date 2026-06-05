@@ -53,5 +53,50 @@
     return { source: "REST:allData.json#" + id, payload };
   }
 
-  NS.boardFetch = { fetch: fetchBoard, boardId };
+  /**
+   * Догрузка потраченного (logged) времени по задачам. В allData.json его нет —
+   * там только оценка (estimateStatistic, обычно timeoriginalestimate). Реальный
+   * timespent берём поиском по ключам через /rest/api/3/search/jql пачками.
+   * @param {string[]} keys ключи задач ("WS-101", ...)
+   * @returns {Promise<Map<string, number>>} key → потраченные секунды (только >0)
+   */
+  async function fetchSpent(keys) {
+    const map = new Map();
+    if (!Array.isArray(keys) || !keys.length) return map;
+
+    const BATCH = 100;
+    for (let i = 0; i < keys.length; i += BATCH) {
+      const chunk = keys.slice(i, i + BATCH);
+      const body = {
+        jql: "key in (" + chunk.join(",") + ")",
+        fields: ["timespent"],
+        maxResults: chunk.length
+      };
+      let res;
+      try {
+        res = await fetch("/rest/api/3/search/jql", {
+          method: "POST",
+          credentials: "include",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      } catch (e) {
+        console.warn(TAG, "✗ сетевая ошибка search/jql:", e);
+        continue;
+      }
+      if (!res.ok) {
+        console.warn(TAG, "✗ search/jql вернул", res.status);
+        continue;
+      }
+      const data = await res.json().catch(() => null);
+      const list = data && Array.isArray(data.issues) ? data.issues : [];
+      for (const issue of list) {
+        const sec = issue.fields && issue.fields.timespent;
+        if (sec) map.set(issue.key, sec);
+      }
+    }
+    return map;
+  }
+
+  NS.boardFetch = { fetch: fetchBoard, fetchSpent, boardId };
 })(window.JES = window.JES || {});

@@ -56,19 +56,25 @@
     return banner;
   }
 
-  // Две строки: 1) сумма часов, 2) число карточек без времени.
-  function renderBanner(banner, totalHours, noEstimateCount, formatHours) {
+  // Три строки: 1) сумма оценок, 2) число карточек без времени,
+  //             3) сумма потраченного (logged) времени по колонке.
+  function renderBanner(banner, totalHours, noEstimateCount, formatHours, spentHours) {
     banner.innerHTML = "";
 
     const sum = document.createElement("span");
     sum.className = "jiraext-sum";
-    sum.textContent = "Σ " + formatHours(totalHours) + " h";
+    sum.textContent = "Σ " + formatHours(totalHours);
     banner.appendChild(sum);
 
     const warn = document.createElement("span");
     warn.className = "jiraext-warn" + (noEstimateCount === 0 ? " jiraext-zero" : "");
     warn.textContent = noEstimateCount + " no estimate";
     banner.appendChild(warn);
+
+    const spent = document.createElement("span");
+    spent.className = "jiraext-spent" + (spentHours ? "" : " jiraext-zero");
+    spent.textContent = formatHours(spentHours || 0) + " spent";
+    banner.appendChild(spent);
   }
 
   function bannersHealthy() {
