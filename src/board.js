@@ -62,12 +62,12 @@
 
     const sum = document.createElement("span");
     sum.className = "jiraext-sum";
-    sum.textContent = "Σ " + formatHours(totalHours) + " ч";
+    sum.textContent = "Σ " + formatHours(totalHours) + " h";
     banner.appendChild(sum);
 
     const warn = document.createElement("span");
     warn.className = "jiraext-warn" + (noEstimateCount === 0 ? " jiraext-zero" : "");
-    warn.textContent = noEstimateCount + " без времени";
+    warn.textContent = noEstimateCount + " no estimate";
     banner.appendChild(warn);
   }
 

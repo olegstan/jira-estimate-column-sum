@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Jira Estimate Summary",
   "version": "1.0.0",
-  "description": "Sum Original estimate hours per Jira board column and highlight cards without an estimate. Time tracking helper for Scrum/Kanban boards.",
+  "description": "Sum Original estimate hours per Jira board column and highlight cards without an estimate. Time tracking helper for Scrum/Kanban.",
   "permissions": ["storage"],
   "icons": {
     "16": "icons/icon16.png",
