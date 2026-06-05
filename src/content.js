@@ -81,10 +81,12 @@
 
     board.columns().forEach((column) => {
       const apiCol = resolveApiColumn(column);
-      const t = totals.get(apiCol) || { hours: 0, noEst: 0, spent: 0 };
+      const t = totals.get(apiCol) || { hours: 0, noEst: 0, spent: 0, noSpent: 0 };
 
       const banner = board.ensureBanner(column);
-      if (banner) board.renderBanner(banner, t.hours, t.noEst, (h) => estimate.format(h, cfg), t.spent);
+      if (banner) {
+        board.renderBanner(banner, t.hours, t.noEst, (h) => estimate.format(h, cfg), t.spent, t.noSpent);
+      }
 
       // Красим только видимые карточки — по данным из store (не из DOM).
       board.cards(column).forEach((card) => {

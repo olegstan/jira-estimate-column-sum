@@ -32,17 +32,19 @@
      * Итоги по колонкам. Необязательный предикат отбирает задачи (напр. по
      * исполнителю при активном URL-фильтре) — отвергнутые в суммы не идут.
      * @param {(entry:object)=>boolean} [accept]
-     * @returns {Map<string,{hours:number,noEst:number,spent:number}>}
+     * @returns {Map<string,{hours:number,noEst:number,spent:number,noSpent:number}>}
+     *          noEst — карточек без оценки; noSpent — без залогированного времени.
      */
     function totalsByColumn(accept) {
       const totals = new Map();
       cache.forEach((entry) => {
         if (accept && !accept(entry)) return;
         const { col, hours, hasEst, spent } = entry;
-        const t = totals.get(col) || { hours: 0, noEst: 0, spent: 0 };
+        const t = totals.get(col) || { hours: 0, noEst: 0, spent: 0, noSpent: 0 };
         t.hours += hours;
         t.spent += spent || 0;
         if (!hasEst) t.noEst += 1;
+        if (!(spent > 0)) t.noSpent += 1;
         totals.set(col, t);
       });
       return totals;

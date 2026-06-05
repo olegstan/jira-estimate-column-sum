@@ -5,11 +5,12 @@
   height: auto !important;
   min-height: 0 !important;
   align-items: center !important;
-  padding-bottom: 56px !important;
+  padding-bottom: 78px !important;
 }
 
-/* Баннер: всегда три строки под названием колонки — 1-я сумма оценок,
-   2-я количество без времени, 3-я потраченное (logged) время. */
+/* Баннер: четыре строки под названием колонки — 1-я сумма оценок,
+   2-я карточек без оценки, 3-я потраченное (logged) время,
+   4-я карточек без залогированного времени. */
 .jiraext-banner {
   flex-basis: 100%;
   width: 100%;
@@ -25,7 +26,8 @@
 
 .jiraext-sum,
 .jiraext-warn,
-.jiraext-spent {
+.jiraext-spent,
+.jiraext-nospent {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
@@ -52,6 +54,14 @@
 
 .jiraext-spent.jiraext-zero {
   background: #5e6c84; /* серый, когда потрачено 0 */
+}
+
+.jiraext-nospent {
+  background: #ff8b00; /* Jira orange — карточки без залогированного времени */
+}
+
+.jiraext-nospent.jiraext-zero {
+  background: #5e6c84; /* серый, когда таких нет */
 }
 
 /* Карточки без оценки времени — розовая подсветка */
