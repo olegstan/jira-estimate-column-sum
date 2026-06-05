@@ -14,7 +14,7 @@
 
   /**
    * @param {object} payload разобранный JSON ответа fetchBoardData
-   * @returns {Array<{key:string, column:string, estimation:string}>}
+   * @returns {Array<{key:string, column:string, estimation:string, assignee:string}>}
    *          только видимые задачи (isVisible !== false — уважаем quick-фильтры)
    */
   function extractIssues(payload) {
@@ -31,7 +31,8 @@
         issues.push({
           key: issue.key,
           column: columnName,
-          estimation: issue.estimation || ""
+          estimation: issue.estimation || "",
+          assignee: issue.assigneeAccountId || issue.assigneeKey || ""
         });
       }
     }
@@ -52,8 +53,9 @@
   /**
    * Разбор allData.json. Колонку задачи определяем по statusId → columns[].statusIds,
    * оценку берём из estimateStatistic.statFieldValue.text (тот же формат, что и
-   * estimation в fetchBoardData: "2h", "1d 2h 30m", "0m", ...).
-   * @returns {Array<{key:string, column:string, estimation:string}>}
+   * estimation в fetchBoardData: "2h", "1d 2h 30m", "0m", ...). Исполнителя
+   * (assigneeAccountId) храним, чтобы суммы реагировали на URL-фильтр ?assignee=.
+   * @returns {Array<{key:string, column:string, estimation:string, assignee:string}>}
    */
   function extractIssuesFromAllData(payload) {
     const columns = payload.columnsData.columns;
@@ -71,7 +73,8 @@
       issues.push({
         key: issue.key,
         column: statusToColumn.get(String(issue.statusId)) || "",
-        estimation: (stat && stat.text) || ""
+        estimation: (stat && stat.text) || "",
+        assignee: issue.assigneeAccountId || issue.assigneeKey || ""
       });
     }
     return issues;

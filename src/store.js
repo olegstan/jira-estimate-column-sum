@@ -7,10 +7,10 @@
   "use strict";
 
   function createStore() {
-    const cache = new Map(); // key -> { col, hours, hasEst, spent }
+    const cache = new Map(); // key -> { col, hours, hasEst, spent, assignee }
 
-    function set(key, col, hours, hasEst) {
-      if (key) cache.set(key, { col, hours, hasEst, spent: 0 });
+    function set(key, col, hours, hasEst, assignee) {
+      if (key) cache.set(key, { col, hours, hasEst, spent: 0, assignee: assignee || "" });
     }
 
     // Потраченное время приходит отдельным запросом (см. boardFetch.fetchSpent),
@@ -28,10 +28,17 @@
       cache.clear();
     }
 
-    /** @returns {Map<string,{hours:number,noEst:number,spent:number}>} итоги по колонкам */
-    function totalsByColumn() {
+    /**
+     * Итоги по колонкам. Необязательный предикат отбирает задачи (напр. по
+     * исполнителю при активном URL-фильтре) — отвергнутые в суммы не идут.
+     * @param {(entry:object)=>boolean} [accept]
+     * @returns {Map<string,{hours:number,noEst:number,spent:number}>}
+     */
+    function totalsByColumn(accept) {
       const totals = new Map();
-      cache.forEach(({ col, hours, hasEst, spent }) => {
+      cache.forEach((entry) => {
+        if (accept && !accept(entry)) return;
+        const { col, hours, hasEst, spent } = entry;
         const t = totals.get(col) || { hours: 0, noEst: 0, spent: 0 };
         t.hours += hours;
         t.spent += spent || 0;

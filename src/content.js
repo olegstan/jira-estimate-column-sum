@@ -24,6 +24,7 @@
   let lastPayload = null;
   let debounceTimer = null;
   let lastSignature = "";
+  let lastFilterSig = "";
 
   // Объект для ручного осмотра из консоли: window.__jes
   window.__jes = {
@@ -45,7 +46,7 @@
     store.clear();
     for (const issue of issues) {
       const hours = estimate.parse(issue.estimation, cfg);
-      store.set(issue.key, issue.column, hours, hours > 0);
+      store.set(issue.key, issue.column, hours, hours > 0, issue.assignee);
     }
     log("применил данные API: задач(видимых) =", issues.length,
       "| колонки API:", [...store.totalsByColumn().keys()]);
@@ -76,7 +77,7 @@
       return;
     }
 
-    const totals = store.totalsByColumn();
+    const totals = store.totalsByColumn(assigneeAccept());
 
     board.columns().forEach((column) => {
       const apiCol = resolveApiColumn(column);
@@ -115,9 +116,30 @@
     return resolved;
   }
 
+  // ---- Фильтр по исполнителю (URL ?assignee=...) ----------------------------
+  // Доска применяет фильтр по исполнителю клиентски через параметр(ы) URL, а
+  // allData.json его не отражает. Поэтому суммы фильтруем сами: оставляем только
+  // задачи, чей assigneeAccountId есть среди выбранных. Несколько ?assignee=
+  // означают объединение. Нет параметра — показываем всех (accept = null).
+  function assigneeFilter() {
+    const vals = new URLSearchParams(location.search).getAll("assignee");
+    return vals.length ? new Set(vals) : null;
+  }
+
+  function assigneeAccept() {
+    const set = assigneeFilter();
+    return set ? (entry) => set.has(entry.assignee) : null;
+  }
+
+  // Отпечаток фильтра — чтобы пересчитать суммы при смене ?assignee= без F5.
+  function filterSignature() {
+    return new URLSearchParams(location.search).getAll("assignee").sort().join(",");
+  }
+
   function runRecalc() {
     recalc();
     lastSignature = board.visibleSignature();
+    lastFilterSig = filterSignature();
   }
 
   function scheduleRecalc() {
@@ -139,6 +161,7 @@
     loadedBoardId = boardFetch ? boardFetch.boardId() : null;
     lastPayload = null;
     lastSignature = "";
+    lastFilterSig = "";
     spentToken++; // отбросить незавершённую догрузку timespent прошлой доски
     store.clear();
     board.cleanup(); // снять баннеры прошлой доски, recalc отрисует заново
@@ -155,7 +178,9 @@
         return;
       }
     }
-    if (!board.bannersHealthy() || board.visibleSignature() !== lastSignature) {
+    if (!board.bannersHealthy() ||
+        board.visibleSignature() !== lastSignature ||
+        filterSignature() !== lastFilterSig) {
       scheduleRecalc();
     }
   }
