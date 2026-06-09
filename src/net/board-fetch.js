@@ -69,7 +69,10 @@
       const chunk = keys.slice(i, i + BATCH);
       const body = {
         jql: "key in (" + chunk.join(",") + ")",
-        fields: ["timespent"],
+        // aggregatetimespent — суммарное время с учётом подзадач: когда время
+        // залогировано на подзадачах (а на доске показана родительская карточка),
+        // собственный timespent родителя = null, а aggregatetimespent содержит сумму.
+        fields: ["timespent", "aggregatetimespent"],
         maxResults: chunk.length
       };
       let res;
@@ -91,7 +94,10 @@
       const data = await res.json().catch(() => null);
       const list = data && Array.isArray(data.issues) ? data.issues : [];
       for (const issue of list) {
-        const sec = issue.fields && issue.fields.timespent;
+        const f = issue.fields || {};
+        // берём максимум: aggregatetimespent включает подзадачи, timespent — нет;
+        // если время на самом родителе, оба равны, если на подзадачах — agg больше.
+        const sec = Math.max(f.timespent || 0, f.aggregatetimespent || 0);
         if (sec) map.set(issue.key, sec);
       }
     }
